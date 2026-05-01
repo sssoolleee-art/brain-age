@@ -995,6 +995,7 @@ function ShareScreen({
   onBack: () => void;
 }) {
   const cfg = BRAIN_TYPE_CONFIG[brainType];
+  const [copied, setCopied] = useState(false);
 
   async function handleShare() {
     const text = `🧠 두뇌나이 측정 결과\n두뇌 나이: ${brainAge}세\n${cfg.emoji} ${cfg.label}\n정답률: ${correctCount}/15 (${Math.round(correctCount / 15 * 100)}%)\n\n토스에서 측정해보세요!`;
@@ -1002,7 +1003,8 @@ function ShareScreen({
       try { await navigator.share({ title: '두뇌나이 테스트', text }); } catch {}
     } else {
       await navigator.clipboard.writeText(text);
-      alert('결과가 복사되었어요!');
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
   }
 
@@ -1029,6 +1031,11 @@ function ShareScreen({
 
       <div style={{ padding: '0 16px' }}>
         <button style={S.btn()} onClick={handleShare}>공유하기</button>
+        {copied && (
+          <div style={{ marginTop: 12, textAlign: 'center', fontSize: 14, fontWeight: 600, color: '#00b894', background: '#f0fff4', borderRadius: 10, padding: '10px 0' }}>
+            결과가 복사되었어요!
+          </div>
+        )}
       </div>
     </div>
   );
