@@ -2,9 +2,9 @@ import { useEffect, useRef } from 'react';
 import { TossAds, loadFullScreenAd, showFullScreenAd } from '@apps-in-toss/web-framework';
 
 const AD_IDS = {
-  banner:       'test-banner',
-  interstitial: 'test-interstitial',
-  rewarded:     'test-rewarded',
+  banner:       'ait.v2.live.ad476e3eb91d4f46',
+  interstitial: 'ait.v2.live.167d547206c24946',
+  rewarded:     'ait.v2.live.3b50c27144364372',
 };
 
 export function BannerAd() {

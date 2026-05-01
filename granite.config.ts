@@ -1,7 +1,7 @@
 import { defineConfig } from '@apps-in-toss/web-framework/config';
 
 export default defineConfig({
-  appName: 'brain-age',
+  appName: 'brainagetest',
   brand: {
     displayName: '두뇌나이',
     primaryColor: '#6C5CE7',
