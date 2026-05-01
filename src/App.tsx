@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { graniteEvent } from '@apps-in-toss/web-framework';
 import { BannerAd, showInterstitialAd, showRewardedAd } from './utils/ads';
 
@@ -454,7 +454,8 @@ function HomeScreen({ onStart }: { onStart: () => void }) {
   const totalCount = getTotalCount();
 
   useEffect(() => {
-    graniteEvent.onBackPressed(() => {});
+    const cleanup = graniteEvent.addEventListener('backEvent', { onEvent: () => {} });
+    return cleanup;
   }, []);
 
   return (
@@ -544,12 +545,13 @@ function PlayScreen({ onFinish }: { onFinish: (answers: (number | null)[], probl
 
   const startTimeRef = useRef(performance.now());
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const handleAnswerRef = useRef<(selected: number | null) => void>(() => {});
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
   }, []);
 
-  const handleAnswer = useCallback((selected: number | null) => {
+  const handleAnswer = useCallback(function handleAnswerFn(selected: number | null) {
     clearTimer();
     const elapsed = performance.now() - startTimeRef.current;
     const isCorrect = selected === state.problem.answer;
@@ -596,6 +598,9 @@ function PlayScreen({ onFinish }: { onFinish: (answers: (number | null)[], probl
     }, isCorrect ? 800 : 1800);
   }, [state, clearTimer, onFinish]);
 
+  // Keep ref in sync so timer always calls the latest handleAnswer
+  handleAnswerRef.current = handleAnswer;
+
   // Timer
   useEffect(() => {
     if (state.phase !== 'question') return;
@@ -606,8 +611,8 @@ function PlayScreen({ onFinish }: { onFinish: (answers: (number | null)[], probl
         if (prev.phase !== 'question') return prev;
         if (prev.timeLeft <= 1) {
           clearTimer();
-          handleAnswer(null);
-          return prev;
+          setTimeout(() => handleAnswerRef.current(null), 0);
+          return { ...prev, timeLeft: 0 };
         }
         return { ...prev, timeLeft: prev.timeLeft - 1 };
       });
