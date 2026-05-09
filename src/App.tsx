@@ -165,7 +165,18 @@ function genCompare(level: number): Problem {
   const diff = randInt(1, maxDiff);
   let right = left + pickRandom([diff, -diff]);
   if (right <= 0) right = left + diff;
-  const factors = findNaturalFactors(right);
+  let factors = findNaturalFactors(right);
+  for (let i = 0; i < 20 && factors.a === 1; i++) {
+    const d = randInt(1, maxDiff);
+    right = left + pickRandom([d, -d]);
+    if (right <= 0) right = left + d;
+    factors = findNaturalFactors(right);
+  }
+  if (factors.a === 1) {
+    right = right % 2 === 0 ? right : right + 1;
+    if (right === left) right += 2;
+    factors = findNaturalFactors(right);
+  }
   const leftLabel = `${a1} × ${b1}`;
   const rightLabel = `${factors.a} × ${factors.b}`;
   const isLeftBigger = left > right;
@@ -228,7 +239,7 @@ function genPattern(level: number): Problem {
     const seq = [a, b];
     for (let i = 2; i < 6; i++) seq.push(seq[i - 1] + seq[i - 2]);
     const answer = seq[5] + seq[4];
-    seq.push(seq[5]);
+    seq.push(answer);
     return { type: 'pattern', display: `${seq.slice(0, 6).join(', ')}, ?`, answer, options: generateOptions4(answer), timeLimit: 20, level };
   } else {
     const start = randInt(1, 5);
@@ -451,7 +462,7 @@ const S = {
 function HomeScreen({ onStart }: { onStart: () => void }) {
   const bestAge = lsGet<number>(SK.BEST);
   const streak = getStreak();
-  const totalCount = getTotalCount();
+  const [totalCount] = useState(() => getTotalCount());
   const [adFree, setAdFree] = useState(isAdFree());
   const [purchasing, setPurchasing] = useState(false);
 
@@ -582,10 +593,10 @@ function PlayScreen({ onFinish }: { onFinish: (answers: (number | null)[], probl
     const isCorrect = selected === state.problem.answer;
     setState(prev => ({ ...prev, phase: 'feedback', selectedOption: selected, isCorrect }));
 
-    const newResponsTime = elapsed;
+    const newResponseTime = elapsed;
     setTimeout(async () => {
       const newAnswers = [...state.answers, selected];
-      const newResponseTimes = [...state.responseTimes, newResponsTime];
+      const newResponseTimes = [...state.responseTimes, newResponseTime];
       const newProblems = [...state.problems];
       const newAdaptive = updateAdaptiveState(state.adaptive, isCorrect);
       const newMaxLevel = Math.max(state.maxLevel, newAdaptive.currentLevel);
@@ -597,7 +608,7 @@ function PlayScreen({ onFinish }: { onFinish: (answers: (number | null)[], probl
       }
 
       // Interstitial at Q8→Q9
-      if (nextIdx === 8 && !state.interstitialShown) {
+      if (nextIdx === 8 && !state.interstitialShown && !isAdFree()) {
         await showInterstitialAd();
       }
 
