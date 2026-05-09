@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { graniteEvent } from '@apps-in-toss/web-framework';
-import { BannerAd, showInterstitialAd, showRewardedAd } from './utils/ads';
+import { graniteEvent, IAP } from '@apps-in-toss/web-framework';
+import { BannerAd, showInterstitialAd, showRewardedAd, isAdFree, restoreAdFree, buyAdFree, REGION_SKU, REGION_KEY, PLAN_SKU, PLAN_KEY } from './utils/ads';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -452,11 +452,19 @@ function HomeScreen({ onStart }: { onStart: () => void }) {
   const bestAge = lsGet<number>(SK.BEST);
   const streak = getStreak();
   const totalCount = getTotalCount();
+  const [adFree, setAdFree] = useState(isAdFree());
+  const [purchasing, setPurchasing] = useState(false);
 
   useEffect(() => {
     const cleanup = graniteEvent.addEventListener('backEvent', { onEvent: () => {} });
+    restoreAdFree(() => setAdFree(true));
     return cleanup;
   }, []);
+
+  async function handleStart() {
+    if (!isAdFree()) await showInterstitialAd();
+    onStart();
+  }
 
   return (
     <div style={S.page}>
@@ -493,16 +501,33 @@ function HomeScreen({ onStart }: { onStart: () => void }) {
       )}
 
       <div style={{ padding: '0 16px', marginBottom: 12 }}>
-        <button style={S.btn()} onClick={onStart}>측정 시작</button>
+        <button style={S.btn()} onClick={handleStart}>측정 시작</button>
       </div>
 
       <div style={{ textAlign: 'center', fontSize: 13, color: '#b2bec3', marginBottom: 16 }}>
         {totalCount.toLocaleString()}명이 측정했어요
       </div>
 
-      <div style={{ padding: '0 16px' }}>
-        <BannerAd />
-      </div>
+      {!adFree && (
+        <div style={{ padding: '0 16px', marginBottom: 8 }}>
+          <button
+            onClick={() => {
+              if (purchasing) return;
+              setPurchasing(true);
+              buyAdFree(() => setAdFree(true), () => setPurchasing(false));
+            }}
+            style={{ width: '100%', padding: '12px', borderRadius: 12, background: '#fff', border: '1.5px solid #e0d9ff', color: '#b2bec3', fontSize: 13, cursor: 'pointer' }}
+          >
+            {purchasing ? '처리 중...' : '🚫 ₩990으로 광고 영구 제거'}
+          </button>
+        </div>
+      )}
+
+      {!adFree && (
+        <div style={{ padding: '0 16px' }}>
+          <BannerAd />
+        </div>
+      )}
     </div>
   );
 }
@@ -713,6 +738,49 @@ function PlayScreen({ onFinish }: { onFinish: (answers: (number | null)[], probl
   );
 }
 
+// ── IAP Content Data ──────────────────────────────────────────────────────────
+
+const GRADE_COLOR: Record<string, string> = { S: '#FFD700', A: '#6C5CE7', B: '#00B894', C: '#FDCB6E', D: '#B2BEC3' };
+
+const TRAINING_PLANS: Record<BrainType, { target: string; weeks: { week: string; goal: string; tasks: string }[] }> = {
+  lightning:  { target: '정확도 95%+ · 두뇌 나이 -5세', weeks: [
+    { week: '1주차', goal: '함정 정복', tasks: '논리·함정 유형 집중 / 풀기 전 3초 검토 습관 만들기' },
+    { week: '2주차', goal: '응용력 강화', tasks: '퍼센트·시간 문제 매일 10개 / 오답 원인 분석' },
+    { week: '3주차', goal: '속도·정확 균형', tasks: '전 유형 타임어택 / 평균 응답 -1초 목표' },
+    { week: '4주차', goal: '기록 도전', tasks: '매일 2세트 / 두뇌 나이 최저치 갱신 도전' },
+  ]},
+  calculator: { target: '평균 응답 -2초 · 직관력 향상', weeks: [
+    { week: '1주차', goal: '속도 향상', tasks: '연산 문제 빠르게 풀기 / 제한시간 1초씩 단축' },
+    { week: '2주차', goal: '직관 개발', tasks: '첫 번째 느낌 믿기 연습 / 패턴 유형 집중' },
+    { week: '3주차', goal: '균형 훈련', tasks: '전 유형 고루 / 응답 시간 꾸준히 모니터링' },
+    { week: '4주차', goal: '종합 향상', tasks: '타임어택 모드 / 최고 속도 기록 갱신 도전' },
+  ]},
+  intuitive:  { target: '함정 정답률 100% 달성', weeks: [
+    { week: '1주차', goal: '함정 정복', tasks: '논리·함정 문제만 집중 / 문제 천천히 2번 읽기' },
+    { week: '2주차', goal: '꼼꼼함 훈련', tasks: '응용·퍼센트 정독 연습 / 검산 습관 만들기' },
+    { week: '3주차', goal: '속도 유지 + 정확도', tasks: '빠르되 함정 체크 루틴 만들기 / 오답 0 도전' },
+    { week: '4주차', goal: '완성형 도전', tasks: '전 유형 완벽 도전 / 함정 실수 0개 목표' },
+  ]},
+  steady:     { target: '최상위 10% 두뇌 나이 진입', weeks: [
+    { week: '1주차', goal: '레벨 상향', tasks: '고난도 문제 도전 / Lv.5+ 타깃' },
+    { week: '2주차', goal: '속도 강화', tasks: '제한 시간 내 전부 풀기 도전 / 빠른 판단 연습' },
+    { week: '3주차', goal: '연속 완벽', tasks: '5일 연속 정답률 80%+ 유지 도전' },
+    { week: '4주차', goal: '최저 갱신', tasks: '매일 최적 컨디션 / 두뇌 나이 신기록 도전' },
+  ]},
+  creative:   { target: '전 영역 B등급 이상 달성', weeks: [
+    { week: '1주차', goal: '연산 기초', tasks: '사칙연산·빈칸 유형 집중 / 정확도 우선' },
+    { week: '2주차', goal: '논리 보완', tasks: '함정·비교 유형 집중 / 섣부른 판단 금지' },
+    { week: '3주차', goal: '전 영역 균형', tasks: '랜덤 유형 고루 풀기 / 패턴에 속도 추가' },
+    { week: '4주차', goal: '종합 기록', tasks: '강점 패턴 + 보완 논리로 신기록 도전' },
+  ]},
+  rusty:      { target: '두뇌 나이 -10세 목표', weeks: [
+    { week: '1주차', goal: '워밍업', tasks: '매일 1회 테스트 / 결과보다 참여 자체가 목표' },
+    { week: '2주차', goal: '기초 재건', tasks: '연산·패턴 집중 / 오답 확인 필수' },
+    { week: '3주차', goal: '도전 시작', tasks: '정답률 70% 목표 / 함정 문제 도전' },
+    { week: '4주차', goal: '잠재력 폭발', tasks: '매일 2회 도전 / 두뇌 나이 기록 갱신' },
+  ]},
+};
+
 // ── ResultScreen ──────────────────────────────────────────────────────────────
 
 function ResultScreen({
@@ -730,6 +798,65 @@ function ResultScreen({
   const [historyUnlocked, setHistoryUnlocked] = useState(false);
   const [analysisUnlocked, setAnalysisUnlocked] = useState(false);
   const [analysisData, setAnalysisData] = useState<{ area: string; emoji: string; score: number; description: string }[] | null>(null);
+  const [adFree, setAdFree] = useState(isAdFree());
+  const [purchasing, setPurchasing] = useState(false);
+  const [regionUnlocked, setRegionUnlocked] = useState(() => localStorage.getItem(REGION_KEY) === 'true');
+  const [planUnlocked, setPlanUnlocked] = useState(() => localStorage.getItem(PLAN_KEY) === 'true');
+  const [iapPurchasing, setIapPurchasing] = useState<string | null>(null);
+
+  useEffect(() => {
+    restoreAdFree(() => setAdFree(true));
+  }, []);
+
+  useEffect(() => {
+    const products = [
+      { sku: REGION_SKU, key: REGION_KEY, set: setRegionUnlocked },
+      { sku: PLAN_SKU,   key: PLAN_KEY,   set: setPlanUnlocked },
+    ];
+    if (products.every(p => localStorage.getItem(p.key) === 'true')) return;
+    IAP.getCompletedOrRefundedOrders().then(res => {
+      for (const order of res?.orders ?? []) {
+        if (order.status !== 'COMPLETED') continue;
+        const p = products.find(x => x.sku === order.sku);
+        if (p) { localStorage.setItem(p.key, 'true'); p.set(true); }
+      }
+    }).catch(() => {});
+  }, []);
+
+  function handleBuyIap(sku: string, key: string, set: (v: boolean) => void) {
+    if (iapPurchasing) return;
+    setIapPurchasing(sku);
+    const cleanup = IAP.createOneTimePurchaseOrder({
+      options: {
+        sku,
+        processProductGrant: async () => {
+          try { localStorage.setItem(key, 'true'); set(true); return true; }
+          catch { return false; }
+        },
+      },
+      onEvent: () => { cleanup(); setIapPurchasing(null); },
+      onError:  () => { cleanup(); setIapPurchasing(null); },
+    });
+  }
+
+  // 뇌 영역 정밀 분석 데이터
+  const regionDetail = (() => {
+    const areaConfig = [
+      { key: '연산력', types: ['arithmetic', 'missing'] as ProblemType[], emoji: '🔢', tip: '매일 암산 훈련으로 처리 속도를 높여보세요' },
+      { key: '논리력', types: ['trap', 'compare'] as ProblemType[], emoji: '🧩', tip: '문제를 꼼꼼히 읽는 습관을 들여보세요' },
+      { key: '패턴 인식', types: ['pattern', 'chain'] as ProblemType[], emoji: '🎯', tip: '규칙성 찾기 퍼즐을 꾸준히 풀어보세요' },
+      { key: '응용력', types: ['percent', 'time'] as ProblemType[], emoji: '💡', tip: '실생활 계산 문제로 감각을 키워보세요' },
+    ];
+    return areaConfig.map(({ key, types, emoji, tip }) => {
+      const idxs = problems.map((p, i) => types.includes(p.type) ? i : -1).filter(i => i >= 0);
+      const corrects = idxs.filter(i => answers[i] === problems[i].answer).length;
+      const accuracy = idxs.length > 0 ? Math.round(corrects / idxs.length * 100) : 0;
+      const avgT = idxs.length > 0 ? +(idxs.reduce((s, i) => s + (responseTimes[i] || 10000), 0) / idxs.length / 1000).toFixed(1) : 0;
+      const grade = accuracy >= 80 ? 'S' : accuracy >= 60 ? 'A' : accuracy >= 40 ? 'B' : accuracy >= 20 ? 'C' : 'D';
+      const wrongItems = idxs.filter(i => answers[i] !== problems[i].answer).slice(0, 2).map(i => problems[i].explanation ?? '');
+      return { key, emoji, accuracy, avgT, grade, tip, wrongItems };
+    });
+  })();
 
   const correctCount = answers.filter((a, i) => a === problems[i].answer).length;
   const avgMs = responseTimes.length > 0 ? responseTimes.reduce((s, t) => s + t, 0) / responseTimes.length : 5000;
@@ -751,13 +878,13 @@ function ResultScreen({
   }, []);
 
   async function handleUnlockHistory() {
-    const earned = await showRewardedAd();
-    if (earned) setHistoryUnlocked(true);
+    await showInterstitialAd();
+    setHistoryUnlocked(true);
   }
 
   async function handleUnlockAnalysis() {
-    const earned = await showRewardedAd();
-    if (earned) {
+    await showInterstitialAd();
+    {
       const areaMap: Record<string, ProblemType[]> = {
         '연산': ['arithmetic', 'missing'],
         '논리': ['trap', 'compare'],
@@ -785,7 +912,7 @@ function ResultScreen({
   }
 
   async function handleRetry() {
-    await showInterstitialAd();
+    if (!isAdFree()) await showInterstitialAd();
     onRetry();
   }
 
@@ -883,15 +1010,96 @@ function ResultScreen({
         </div>
       )}
 
+      {/* IAP: 뇌 영역 정밀 분석 */}
+      {regionUnlocked ? (
+        <div style={S.card}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#2d3436', marginBottom: 12 }}>🧬 뇌 영역 정밀 분석</div>
+          {regionDetail.map((area) => (
+            <div key={area.key} style={{ marginBottom: 12, padding: 12, background: '#f8f7ff', borderRadius: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: '#2d3436' }}>{area.emoji} {area.key}</span>
+                <span style={{ fontSize: 16, fontWeight: 800, color: GRADE_COLOR[area.grade] }}>{area.grade}등급</span>
+              </div>
+              <div style={{ fontSize: 12, color: '#636e72', marginBottom: 4 }}>
+                정답률 {area.accuracy}% · 평균 {area.avgT}초
+              </div>
+              {area.wrongItems.filter(Boolean).map((exp, i) => (
+                <div key={i} style={{ fontSize: 11, color: '#e17055', marginTop: 2 }}>💡 {exp}</div>
+              ))}
+              <div style={{ fontSize: 12, color: '#6C5CE7', marginTop: 6 }}>→ {area.tip}</div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{ ...S.card, cursor: iapPurchasing ? 'default' : 'pointer' }}
+          onClick={() => handleBuyIap(REGION_SKU, REGION_KEY, setRegionUnlocked)}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 28 }}>🧬</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#2d3436' }}>🔒 뇌 영역 정밀 분석</div>
+              <div style={{ fontSize: 12, color: '#b2bec3', marginTop: 2 }}>연산·논리·패턴·응용 등급 + 오답 원인 + 맞춤 조언</div>
+            </div>
+            <span style={{ fontSize: 13, fontWeight: 800, color: '#6C5CE7', border: '1.5px solid #6C5CE7', borderRadius: 10, padding: '4px 10px' }}>
+              {iapPurchasing === REGION_SKU ? '...' : '₩990'}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* IAP: 30일 두뇌 훈련 플랜 */}
+      {planUnlocked ? (
+        <div style={S.card}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#2d3436', marginBottom: 4 }}>📅 30일 두뇌 훈련 플랜</div>
+          <div style={{ fontSize: 12, color: '#6C5CE7', marginBottom: 12 }}>목표: {TRAINING_PLANS[brainType].target}</div>
+          {TRAINING_PLANS[brainType].weeks.map((w, i) => (
+            <div key={i} style={{ marginBottom: 10, padding: 12, background: '#f8f7ff', borderRadius: 10 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#2d3436', marginBottom: 3 }}>{w.week}: {w.goal}</div>
+              <div style={{ fontSize: 12, color: '#636e72' }}>{w.tasks}</div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{ ...S.card, cursor: iapPurchasing ? 'default' : 'pointer' }}
+          onClick={() => handleBuyIap(PLAN_SKU, PLAN_KEY, setPlanUnlocked)}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 28 }}>📅</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#2d3436' }}>🔒 30일 두뇌 훈련 플랜</div>
+              <div style={{ fontSize: 12, color: '#b2bec3', marginTop: 2 }}>두뇌 유형별 4주 맞춤 훈련 일정 · 매일 목표 제시</div>
+            </div>
+            <span style={{ fontSize: 13, fontWeight: 800, color: '#6C5CE7', border: '1.5px solid #6C5CE7', borderRadius: 10, padding: '4px 10px' }}>
+              {iapPurchasing === PLAN_SKU ? '...' : '₩990'}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Buttons */}
       <div style={{ padding: '4px 16px 0', display: 'flex', gap: 10 }}>
         <button style={{ ...S.btn(), flex: 1 }} onClick={handleRetry}>한번 더!</button>
         <button style={{ ...S.btnOutline, flex: 1 }} onClick={() => onShare(brainAge, brainType, correctCount, Math.round(avgMs))}>공유하기</button>
       </div>
 
-      <div style={{ padding: '12px 16px 0' }}>
-        <BannerAd />
-      </div>
+      {!adFree && (
+        <div style={{ padding: '12px 16px 0' }}>
+          <button
+            onClick={() => {
+              if (purchasing) return;
+              setPurchasing(true);
+              buyAdFree(() => setAdFree(true), () => setPurchasing(false));
+            }}
+            style={{ width: '100%', padding: '12px', borderRadius: 12, background: '#fff', border: '1.5px solid #e0d9ff', color: '#b2bec3', fontSize: 13, cursor: 'pointer' }}
+          >
+            {purchasing ? '처리 중...' : '🚫 ₩990으로 광고 영구 제거'}
+          </button>
+        </div>
+      )}
+
+      {!adFree && (
+        <div style={{ padding: '12px 16px 0' }}>
+          <BannerAd />
+        </div>
+      )}
     </div>
   );
 }
@@ -975,9 +1183,11 @@ function HistoryScreen({ onBack }: { onBack: () => void }) {
         })}
       </div>
 
-      <div style={{ padding: '0 16px' }}>
-        <BannerAd />
-      </div>
+      {!isAdFree() && (
+        <div style={{ padding: '0 16px' }}>
+          <BannerAd />
+        </div>
+      )}
     </div>
   );
 }

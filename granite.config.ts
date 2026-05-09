@@ -5,7 +5,7 @@ export default defineConfig({
   brand: {
     displayName: '두뇌나이',
     primaryColor: '#6C5CE7',
-    icon: '',
+    icon: 'https://static.toss.im/appsintoss/27863/70405e17-bece-4765-9b4a-b3787e2c0e9b.png',
   },
   web: {
     host: 'localhost',
