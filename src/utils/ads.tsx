@@ -4,10 +4,10 @@ import { TossAds, loadFullScreenAd, showFullScreenAd, IAP } from '@apps-in-toss/
 export const AD_FREE_SKU = 'ait.0000030897.795abd69.22df55e254.8212209872';
 export const AD_FREE_KEY = 'brain_ad_free';
 
-export const REGION_SKU = 'PLACEHOLDER_REGION';
+export const REGION_SKU = 'ait.0000030897.6dca3680.84a4f8d241.8363523523';
 export const REGION_KEY = 'brain_region_unlocked';
 
-export const PLAN_SKU = 'PLACEHOLDER_PLAN';
+export const PLAN_SKU = 'ait.0000030897.2c0e4700.66b0f51ce9.8363550516';
 export const PLAN_KEY = 'brain_plan_unlocked';
 
 export function isAdFree(): boolean {
