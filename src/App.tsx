@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { graniteEvent, IAP } from '@apps-in-toss/web-framework';
+import { graniteEvent, IAP, openURL } from '@apps-in-toss/web-framework';
+// 미니앱 간 이동 (크로스 프로모션) — 토스 밖이면 무시
+const openMiniApp = (link: string) => { openURL(link).catch(() => {}); };
+
 import { BannerAd, showInterstitialAd, showRewardedAd, isAdFree, restoreAdFree, buyAdFree, REGION_SKU, REGION_KEY, PLAN_SKU, PLAN_KEY } from './utils/ads';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -1252,6 +1255,9 @@ function ShareScreen({
 
       <div style={{ padding: '0 16px' }}>
         <button style={S.btn()} onClick={handleShare}>공유하기</button>
+        {/* 크로스 프로모션 */}
+        <button style={{ width: '100%', padding: '14px', fontSize: 14, fontWeight: 700, color: '#fff', background: 'linear-gradient(90deg, #2D1B69, #4C1D95)', border: 'none', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => openMiniApp('intoss://oxquiz')}>🧠 하루 10문제 두뇌 퀴즈 · 두뇌 나이 확인 ›</button>
+        <button style={{ width: '100%', padding: '14px', fontSize: 14, fontWeight: 700, color: '#E9D5FF', background: 'rgba(168,85,247,0.14)', border: '1px solid rgba(168,85,247,0.4)', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => openMiniApp('intoss://fortune-today-kr')}>🔮 오늘의 운세 무료로 보기 ›</button>
         {copied && (
           <div style={{ marginTop: 12, textAlign: 'center', fontSize: 14, fontWeight: 600, color: '#00b894', background: '#f0fff4', borderRadius: 10, padding: '10px 0' }}>
             결과가 복사되었어요!
