@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { graniteEvent, IAP, openURL } from '@apps-in-toss/web-framework';
+import { graniteEvent, IAP, openURL, eventLog } from '@apps-in-toss/web-framework';
 // 미니앱 간 이동 (크로스 프로모션) — 토스 밖이면 무시
-const openMiniApp = (link: string) => { openURL(link).catch(() => {}); };
+const openMiniApp = (link: string) => {
+  try { void eventLog({ log_name: 'cross_promo_click', log_type: 'event', params: { to: link } }).catch(() => {}); } catch { /* ignore */ }
+  openURL(link).catch(() => {});
+};
 
 import { BannerAd, showInterstitialAd, showRewardedAd, isAdFree, restoreAdFree, buyAdFree, REGION_SKU, REGION_KEY, PLAN_SKU, PLAN_KEY } from './utils/ads';
 
