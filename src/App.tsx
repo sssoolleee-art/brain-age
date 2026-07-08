@@ -1259,8 +1259,13 @@ function ShareScreen({
       <div style={{ padding: '0 16px' }}>
         <button style={S.btn()} onClick={handleShare}>공유하기</button>
         {/* 크로스 프로모션 */}
-        <button style={{ width: '100%', padding: '14px', fontSize: 14, fontWeight: 700, color: '#fff', background: 'linear-gradient(90deg, #2D1B69, #4C1D95)', border: 'none', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => openMiniApp('intoss://oxquiz')}>🧠 하루 10문제 두뇌 퀴즈 · 두뇌 나이 확인 ›</button>
-        <button style={{ width: '100%', padding: '14px', fontSize: 14, fontWeight: 700, color: '#E9D5FF', background: 'rgba(168,85,247,0.14)', border: '1px solid rgba(168,85,247,0.4)', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => openMiniApp('intoss://fortune-today-kr')}>🔮 오늘의 운세 무료로 보기 ›</button>
+        <button style={{ width: '100%', padding: '14px', fontSize: 14, fontWeight: 700, color: '#fff', background: 'linear-gradient(90deg, #2D1B69, #4C1D95)', border: 'none', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => openMiniApp('intoss://oxquiz?_ref=brainage')}>🧠 하루 10문제 두뇌 퀴즈 · 두뇌 나이 확인 ›</button>
+        {/* 슬롯2 하루 로테이션: 운세/지원금 */}
+        {Math.floor(Date.now() / 86400000) % 2 === 0 ? (
+          <button style={{ width: '100%', padding: '14px', fontSize: 14, fontWeight: 700, color: '#E9D5FF', background: 'rgba(168,85,247,0.14)', border: '1px solid rgba(168,85,247,0.4)', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => openMiniApp('intoss://fortune-today-kr?_ref=brainage')}>🔮 오늘의 운세 무료로 보기 ›</button>
+        ) : (
+          <button style={{ width: '100%', padding: '14px', fontSize: 14, fontWeight: 700, color: '#93C5FD', background: 'rgba(0,100,255,0.14)', border: '1px solid rgba(0,100,255,0.4)', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit' }} onClick={() => openMiniApp('intoss://subsidy-finder?_ref=brainage')}>💰 놓치고 있던 정부 지원금 찾아보기 ›</button>
+        )}
         {copied && (
           <div style={{ marginTop: 12, textAlign: 'center', fontSize: 14, fontWeight: 600, color: '#00b894', background: '#f0fff4', borderRadius: 10, padding: '10px 0' }}>
             결과가 복사되었어요!
