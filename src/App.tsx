@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { graniteEvent, IAP, openURL, eventLog } from '@apps-in-toss/web-framework';
+import { graniteEvent, IAP, openURL, eventLog, closeView } from '@apps-in-toss/web-framework';
 // 미니앱 간 이동 (크로스 프로모션) — 토스 밖이면 무시
 const openMiniApp = (link: string) => {
   try { void eventLog({ log_name: 'cross_promo_click', log_type: 'event', params: { to: link } }).catch(() => {}); } catch { /* ignore */ }
@@ -473,13 +473,11 @@ function HomeScreen({ onStart }: { onStart: () => void }) {
   const [purchasing, setPurchasing] = useState(false);
 
   useEffect(() => {
-    const cleanup = graniteEvent.addEventListener('backEvent', { onEvent: () => {} });
     restoreAdFree(() => setAdFree(true));
-    return cleanup;
   }, []);
 
-  async function handleStart() {
-    if (!isAdFree()) await showInterstitialAd();
+  // 첫 측정은 광고 없이 바로 시작 (첫 화면 이탈 방지)
+  function handleStart() {
     onStart();
   }
 
@@ -613,10 +611,7 @@ function PlayScreen({ onFinish }: { onFinish: (answers: (number | null)[], probl
         return;
       }
 
-      // Interstitial at Q8→Q9
-      if (nextIdx === 8 && !state.interstitialShown && !isAdFree()) {
-        await showInterstitialAd();
-      }
+      // 문제 도중 전면광고는 예상하기 어려운 시점이라 노출하지 않음 (검수 정책)
 
       const forceType = TRAP_POSITIONS.includes(nextIdx) ? 'trap' as ProblemType : undefined;
       const nextProblem = generateProblem(newAdaptive.currentLevel, forceType);
@@ -895,12 +890,12 @@ function ResultScreen({
   }, []);
 
   async function handleUnlockHistory() {
-    await showInterstitialAd();
+    await showRewardedAd();
     setHistoryUnlocked(true);
   }
 
   async function handleUnlockAnalysis() {
-    await showInterstitialAd();
+    await showRewardedAd();
     {
       const areaMap: Record<string, ProblemType[]> = {
         '연산': ['arithmetic', 'missing'],
@@ -1093,7 +1088,7 @@ function ResultScreen({
 
       {/* Buttons */}
       <div style={{ padding: '4px 16px 0', display: 'flex', gap: 10 }}>
-        <button style={{ ...S.btn(), flex: 1 }} onClick={handleRetry}>한번 더!</button>
+        <button style={{ ...S.btn(), flex: 1 }} onClick={handleRetry}>{isAdFree() ? '한번 더!' : '한번 더! (광고 후 시작)'}</button>
         <button style={{ ...S.btnOutline, flex: 1 }} onClick={() => onShare(brainAge, brainType, correctCount, Math.round(avgMs))}>공유하기</button>
       </div>
 
@@ -1280,6 +1275,23 @@ function ShareScreen({
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('home');
+
+  // 내비게이션 바 뒤로가기: 첫 화면이면 종료, 측정·결과는 첫 화면, 추이·공유는 결과로
+  const screenRef = useRef(screen);
+  screenRef.current = screen;
+  useEffect(() => {
+    try {
+      const cleanup = graniteEvent.addEventListener('backEvent', {
+        onEvent: () => {
+          const cur = screenRef.current;
+          if (cur === 'home') void closeView();
+          else if (cur === 'history' || cur === 'share') setScreen('result');
+          else setScreen('home');
+        },
+      });
+      return () => { cleanup?.(); };
+    } catch { return undefined; }
+  }, []);
   const [sessionData, setSessionData] = useState<{
     answers: (number | null)[];
     problems: Problem[];
