@@ -9,6 +9,7 @@ const openMiniApp = (link: string) => {
 import { BannerAd, showInterstitialAd, showRewardedAd, isAdFree, restoreAdFree, buyAdFree, REGION_SKU, REGION_KEY, PLAN_SKU, PLAN_KEY } from './utils/ads';
 import { PushConsent, logGrowth } from './utils/growth';
 import { markSuccess } from './utils/review';
+import { FeedbackButton } from './utils/feedback';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -1110,6 +1111,7 @@ function ResultScreen({
       )}
 
       <PushConsent templateCode="brainagetest-daily" label="🔔 매일 오전 9시 두뇌 측정 알림 받기" storageKey="brain_push_agreed" />
+      <FeedbackButton app="brainagetest" />
       {!adFree && (
         <div style={{ padding: '12px 16px 0' }}>
           <BannerAd />

@@ -5,12 +5,13 @@ const N_KEY = 'review_success_count';
 const AT_KEY = 'review_requested_at';
 let askedThisSession = false;
 
-export function markSuccess() {
+// great=true: 신기록·고득점처럼 가장 만족한 순간이면 첫 성공에도 요청
+export function markSuccess(great = false) {
   try {
     const n = Number(localStorage.getItem(N_KEY) ?? '0') + 1;
     localStorage.setItem(N_KEY, String(n));
     const last = Number(localStorage.getItem(AT_KEY) ?? '0');
-    if (n < 2 || askedThisSession || Date.now() - last < 30 * 86400000) return;
+    if ((n < 2 && !great) || askedThisSession || Date.now() - last < 30 * 86400000) return;
     askedThisSession = true;
     localStorage.setItem(AT_KEY, String(Date.now()));
     // 결과 화면이 먼저 보이도록 잠시 뒤 요청 (리뷰창이 안 떠도 흐름은 그대로)
