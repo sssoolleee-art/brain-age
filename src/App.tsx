@@ -8,6 +8,7 @@ const openMiniApp = (link: string) => {
 
 import { BannerAd, showInterstitialAd, showRewardedAd, isAdFree, restoreAdFree, buyAdFree, REGION_SKU, REGION_KEY, PLAN_SKU, PLAN_KEY } from './utils/ads';
 import { PushConsent, logGrowth } from './utils/growth';
+import { markSuccess } from './utils/review';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -1303,7 +1304,7 @@ export default function App() {
   const [shareData, setShareData] = useState<{ brainAge: number; brainType: BrainType; correctCount: number; avgMs: number } | null>(null);
 
   function handlePlayFinish(answers: (number | null)[], problems: Problem[], responseTimes: number[], maxLevel: number) {
-    logGrowth('test_complete', { maxLevel });
+    markSuccess(); logGrowth('test_complete', { maxLevel });
     setSessionData({ answers, problems, responseTimes, maxLevel });
     setScreen('result');
   }

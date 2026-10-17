@@ -71,7 +71,19 @@ export function BannerAd() {
   return <div ref={ref} style={{ width: '100%', minHeight: 50 }} />;
 }
 
+// 노출 정책: 전면광고를 반복하지 않음 — 세션당 최대 2회, 최소 3분 간격
+let interstitialShownCount = 0;
+let interstitialShownAt = 0;
+function allowInterstitial(): boolean {
+  const now = Date.now();
+  if (interstitialShownCount >= 2 || now - interstitialShownAt < 180_000) return false;
+  interstitialShownCount += 1;
+  interstitialShownAt = now;
+  return true;
+}
+
 export function showInterstitialAd(): Promise<void> {
+  if (!allowInterstitial()) return Promise.resolve();
   return new Promise((resolve) => {
     if (!loadFullScreenAd.isSupported()) { resolve(); return; }
     let settled = false;
