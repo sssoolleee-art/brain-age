@@ -7,6 +7,7 @@ const openMiniApp = (link: string) => {
 };
 
 import { BannerAd, showInterstitialAd, showRewardedAd, isAdFree, restoreAdFree, buyAdFree, REGION_SKU, REGION_KEY, PLAN_SKU, PLAN_KEY } from './utils/ads';
+import { PushConsent, logGrowth } from './utils/growth';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -1107,6 +1108,7 @@ function ResultScreen({
         </div>
       )}
 
+      <PushConsent templateCode="brainagetest-daily" label="🔔 매일 오전 9시 두뇌 측정 알림 받기" storageKey="brain_push_agreed" />
       {!adFree && (
         <div style={{ padding: '12px 16px 0' }}>
           <BannerAd />
@@ -1301,6 +1303,7 @@ export default function App() {
   const [shareData, setShareData] = useState<{ brainAge: number; brainType: BrainType; correctCount: number; avgMs: number } | null>(null);
 
   function handlePlayFinish(answers: (number | null)[], problems: Problem[], responseTimes: number[], maxLevel: number) {
+    logGrowth('test_complete', { maxLevel });
     setSessionData({ answers, problems, responseTimes, maxLevel });
     setScreen('result');
   }
