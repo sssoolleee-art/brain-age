@@ -1123,7 +1123,8 @@ function ResultScreen({
 
 // ── HistoryScreen ─────────────────────────────────────────────────────────────
 
-function HistoryScreen({ onBack }: { onBack: () => void }) {
+// 뒤로가기는 내비게이션 바(backEvent)로만 — 앱 자체 뒤로 버튼은 중복이라 두지 않음
+function HistoryScreen() {
   const daily = lsGet<Record<string, BrainSession>>(SK.DAILY) ?? {};
   const records = Object.values(daily).sort((a, b) => a.date.localeCompare(b.date)).slice(-14);
 
@@ -1134,7 +1135,6 @@ function HistoryScreen({ onBack }: { onBack: () => void }) {
   return (
     <div style={S.page}>
       <div style={{ padding: '16px 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button onClick={onBack} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#2d3436', padding: '4px 4px 4px 0' }}>←</button>
         <span style={{ fontSize: 18, fontWeight: 800, color: '#2d3436' }}>두뇌 나이 추이</span>
       </div>
 
@@ -1213,13 +1213,11 @@ function HistoryScreen({ onBack }: { onBack: () => void }) {
 
 function ShareScreen({
   brainAge, brainType, correctCount, avgMs,
-  onBack,
 }: {
   brainAge: number;
   brainType: BrainType;
   correctCount: number;
   avgMs: number;
-  onBack: () => void;
 }) {
   const cfg = BRAIN_TYPE_CONFIG[brainType];
   const [copied, setCopied] = useState(false);
@@ -1238,7 +1236,6 @@ function ShareScreen({
   return (
     <div style={S.page}>
       <div style={{ padding: '16px 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button onClick={onBack} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#2d3436', padding: '4px 4px 4px 0' }}>←</button>
         <span style={{ fontSize: 18, fontWeight: 800, color: '#2d3436' }}>결과 공유</span>
       </div>
 
@@ -1326,8 +1323,8 @@ export default function App() {
       onHistory={() => setScreen('history')}
     />
   );
-  if (screen === 'history') return <HistoryScreen onBack={() => setScreen('result')} />;
-  if (screen === 'share' && shareData) return <ShareScreen {...shareData} onBack={() => setScreen('result')} />;
+  if (screen === 'history') return <HistoryScreen />;
+  if (screen === 'share' && shareData) return <ShareScreen {...shareData} />;
 
   return <HomeScreen onStart={() => setScreen('play')} />;
 }
